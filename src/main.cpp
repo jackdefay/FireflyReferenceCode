@@ -20,7 +20,7 @@
 #define RF69_FREQ 900.0
 #define PIN 5
 #define WAIT 3000
-#define ARDUINONUMBER 3  //change this for each feather (increasing from 1)
+#define ARDUINONUMBER 5  //change this for each feather (increasing from 1)
 
 #if defined(ARDUINO_SAMD_FEATHER_M0) // Feather M0 w/Radio
   #define RFM69_CS      8
@@ -101,7 +101,8 @@ void loop() {
   // while(((time != lightBlinkTime && time != radioBlinkTime)){
   // time != lightBlinkTime == lightBlinkTime > then a default time
   // time != radioBlinkTime == radioBlinkTIme > than something && < than something
-  long systemTime = 0;
+
+  long systemTime = 0;  //**this seems weird, why is this not static?**
   do{
     if (rf69.available()) {
       // Should be a message for us now
