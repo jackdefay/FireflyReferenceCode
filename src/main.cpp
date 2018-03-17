@@ -171,11 +171,12 @@ void loop() {
     int signalsGood = 0;
     int averageStrength = 0;
     for(int a = 0; a < counter; a++){  //******need to zero signalstrength variable!!!*******
+      averageStrength = 0;
       for(int b = 0; b < 10; b++){
         averageStrength += signalStrength[a][b];
       }
       averageStrength /= 10;
-      if(averageStrength < -50){
+      if(averageStrength != 0 && averageStrength < -50){
         signalsGood++;
       }
     }
