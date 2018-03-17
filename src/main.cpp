@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 // rf69 demo tx rx.pde
 // -*- mode: C++ -*-
 // Example sketch showing how to create a simple messageing client
@@ -20,7 +18,7 @@
 #define RF69_FREQ 900.0
 #define PIN 5
 #define WAIT 3000
-#define ARDUINONUMBER 5  //change this for each feather (increasing from 1)
+#define ARDUINONUMBER 4  //change this for each feather (increasing from 2)
 
 #if defined(ARDUINO_SAMD_FEATHER_M0) // Feather M0 w/Radio
   #define RFM69_CS      8
@@ -37,7 +35,7 @@ RH_RF69 rf69(RFM69_CS, RFM69_INT);
 int16_t packetnum = 0;  // packet counter, we increment per xmission
 int counter = 0;
 String names[20];
-int signalStrength[20][3];
+int signalStrength[20][10];
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(3, PIN, NEO_RGBW + NEO_KHZ800);
 
@@ -50,7 +48,7 @@ void setup()
 
   for(int a = 0; a < 20; a++){
     names[a] = "";
-    for(int b = 0; b < 3; b++){
+    for(int b = 0; b < 10; b++){
       signalStrength[a][b] = 0;
     }
   }
@@ -101,8 +99,7 @@ void loop() {
   // while(((time != lightBlinkTime && time != radioBlinkTime)){
   // time != lightBlinkTime == lightBlinkTime > then a default time
   // time != radioBlinkTime == radioBlinkTIme > than something && < than something
-
-  long systemTime = 0;  //**this seems weird, why is this not static?**
+  long systemTime = 0;
   do{
     if (rf69.available()) {
       // Should be a message for us now
@@ -110,6 +107,8 @@ void loop() {
       uint8_t len = sizeof(buf);
       if (rf69.recv(buf, &len)) {
         if (!len) return;
+        //Serial.print("Signal recieved: ");
+        //Serial.println(millis());
         if(strstr((char *)buf, "ThisIsALongBlink")){
           lastBlink -= 1000;
           Serial.println("Recieved synchronization signal");
@@ -121,26 +120,35 @@ void loop() {
           for(int a = 0; a < 20; a++){
             if(names[a].equals((char*)buf) /*strstr((char *)buf, names[a])*/){
               duplicate = 1;
+              signalStrength[a][9] = signalStrength[a][8];
+              signalStrength[a][8] = signalStrength[a][7];
+              signalStrength[a][7] = signalStrength[a][6];
+              signalStrength[a][6] = signalStrength[a][5];
+              signalStrength[a][5] = signalStrength[a][4];
+              signalStrength[a][4] = signalStrength[a][3];
+              signalStrength[a][3] = signalStrength[a][2];
               signalStrength[a][2] = signalStrength[a][1];
               signalStrength[a][1] = signalStrength[a][0];
               signalStrength[a][0] = rf69.lastRssi();
-              Serial.print("Signal: ");
+              /*Serial.print("Signal: ");
               Serial.print(names[a]);
               Serial.print(", Signal strength: ");
-              Serial.println(signalStrength[a][0]);
+              Serial.println(signalStrength[a][0]);*/
             }
           }
           if(duplicate == 0){
             names[counter] = (char*)buf;
             signalStrength[counter][0] = rf69.lastRssi();
-            Serial.print("Signal: ");
+            /*Serial.print("Signal: ");
             Serial.print(names[counter]);
             Serial.print(", Signal strength: ");
-            Serial.println(signalStrength[counter][0]);
+            Serial.println(signalStrength[counter][0]);*/
             counter++;
           }
         }
       }
+      //Serial.print("Done: ");
+      //Serial.println(millis());
     }
     systemTime = (long) millis();
   }while((systemTime - lastBlink) < timeBetweenBlinks && (systemTime - lastBlink) != ARDUINONUMBER*100);
@@ -152,18 +160,21 @@ void loop() {
     packetnum = ARDUINONUMBER;
     itoa(packetnum, radiopacket+10, 10);
     //Serial.print("Sending "); Serial.println(radiopacket);
-    rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
-    rf69.waitPacketSent();
+    for(int a = 0; a < 10; a++){
+      rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
+      rf69.waitPacketSent();
+      delay(5);
+    }
   }
   else{
     //Serial.println("Sent synchronization signal");
     int signalsGood = 0;
     int averageStrength = 0;
-    for(int a = 0; a < counter; a++){
-      for(int b = 0; b < 3; b++){
+    for(int a = 0; a < counter; a++){  //******need to zero signalstrength variable!!!*******
+      for(int b = 0; b < 10; b++){
         averageStrength += signalStrength[a][b];
       }
-      averageStrength /= 3;
+      averageStrength /= 10;
       if(averageStrength < -50){
         signalsGood++;
       }
@@ -176,7 +187,7 @@ void loop() {
     rf69.waitPacketSent();
     for(int a = 0; a < counter; a++){
       Serial.print(names[a]);
-      for(int b = 0; b < 3; b++){
+      for(int b = 0; b < 10; b++){
         Serial.print(", ");
         Serial.print(signalStrength[a][b]);
       }
